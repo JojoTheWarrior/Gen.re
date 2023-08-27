@@ -1,0 +1,284 @@
+@import url(https://fonts.googleapis.com/css?family=Lato);
+body, html {
+  height: 100%;
+}
+
+body {
+  line-height: 1.7;
+  font-family: "Lato";
+  display: flex;
+  flex-direction: column;
+  background: rgb(173, 117, 196);
+}
+
+.title {
+  color: rgb(234, 212, 242);
+  position: absolute;
+  font-weight: 1000;
+  font-size: 5rem;
+  transform: translateX(700px) translateY(-300px) skewX(-25deg) skewY(5deg);
+}
+
+
+.description {
+  padding: 1em;
+  background-color: rgb(222, 193, 234);
+  color: white;
+  text-align: center;
+}
+
+.keyboard {
+  margin-top: 10%;
+  display: flex;
+  justify-content: center;
+  padding: 40px 20px 20px;
+  height: 120px;
+  overflow-x: show;
+  transition:.5s;
+  transform: skewX(-25deg) skewY(5deg);
+}
+
+#save{
+  min-width: 8em;
+  max-height: 2em;
+  padding:0;
+  margin:0;
+  margin-left: 1em;
+}
+
+#myPianoRollVisualizer {
+  position: absolute;
+  pointer-events: none;
+  z-index: -100;
+  transform: translateX(650px) scalex(-1) scaleY(425%) scaleX(500%) rotate(-120deg) skewX(-25deg);
+}
+
+@keyframes translateDown {
+  from {
+    transform: translateX(650px) scalex(-1) scaleY(425%) scaleX(500%) rotate(-120deg) skewX(-25deg);
+  }
+  to {
+    transform: translateY(200px) translateX(500px) scalex(-1) scaleY(425%) scaleX(500%) rotate(-120deg) skewX(-25deg);
+  }
+}
+
+.translate-animation {
+  animation: translateDown 6s linear; /* Adjust the duration as needed */
+}
+
+
+.keyboard:hover{
+  
+}
+.keyboard__note {
+  flex-shrink: 0;
+  height: 200px;
+  width: 60px;
+  background-color: ivory;
+  box-shadow: 0 5px 0 5px black;
+  user-select: none;
+  cursor: pointer;
+  color: transparent;
+  transition:.2s;
+}
+.keyboard__note:nth-child(12n+5), .keyboard__note:nth-child(12n+7), .keyboard__note:nth-child(12n+10), .keyboard__note:nth-child(12n+12), .keyboard__note:nth-child(12n+2) {
+  background-color: black;
+  height: 120px;
+  margin-left: -20px;
+  margin-right: -20px;
+  margin-top:-5px;
+  z-index: 1;
+  width: 30px;
+  border-left: 2px solid black;
+  border-right: 2px solid black;
+  border-radius: 4px;
+  box-shadow: none;
+  transition:.2s;
+}
+.keyboard__note.keyboard__note--pressed {
+  margin-top: 2px;
+  transition:.2s;
+  outline: none;
+  background-color:  rgb(222, 193, 234);
+  transform:translatex(7%)skewx(2deg);
+  box-shadow: 0 2px 0 0 black;
+}
+
+.loops {
+  background-color:  rgb(246, 240, 248);
+  flex-direction: column;
+  padding: 1em;
+  border-bottom: 4px solid black;
+}
+.loops__actions{
+  display: flexbox;
+  text-align: center;
+  align-items: centre;
+  justify-items: center;
+}
+#player::part(control-panel){
+  background: transparent;
+}
+
+#tape{
+  transform: skewX(-25deg) skewY(5deg);
+  margin: 10em;
+  margin-top:8rem;
+  width:25em;
+  border-radius: 0.2em;
+  box-shadow: 0.5em 0.5em 0 0 black;
+}
+
+button {
+  font-size: 1em;
+  border: 1px solid black;
+  min-width: 3em;
+  width: 3em;
+  height: 3em;
+  padding: 0.45em;
+  background-color: ivory;
+  cursor: pointer;
+  margin-bottom: 2px;
+  border-radius: 3em;
+  box-shadow: 1px 1px 0 0 black;
+}
+button:focus {
+  outline: none;
+}
+button:active {
+  margin-left: 1px;
+  margin-top: 1px;
+  box-shadow: none;
+}
+
+
+.add {
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.info {
+  background-color: black;
+  color: white;
+  margin-top: auto;
+}
+
+.load {
+  width: 0.1px;
+  height: 0.1px;
+  opacity: 0;
+  overflow: hidden;
+  position: absolute;
+  z-index: -1;
+}
+.load + label {
+  font-size: 1em;
+  border: 1px solid black;
+  min-width: 2em;
+  height: 2em;
+  padding: 0.3em 0.5em 0.3em 1em;
+  background-color: ivory;
+  cursor: pointer;
+  border-radius: 2em;
+  color: black;
+}
+.load + label svg {
+  margin-left: 0.5em;
+}
+
+.note-position-1 {
+  margin-top: 30px;
+}
+
+.note-position-2 {
+  margin-top: -30px;
+  margin-left: -50px;
+}
+
+.note-position-3 {
+  margin:-10px;
+  margin-left:30px;
+}
+
+.note-position-4 {
+  margin:-5px;
+  margin-left:50px;
+}
+
+.animation-delay-1 {
+  animation-delay: 1s;
+}
+
+.animation-delay-2 {
+  animation-delay: 2s;
+}
+
+.note-amination {
+  position: absolute;
+  font-size: 35px;
+  animation-name: notes;
+  animation-duration: 2s;
+  animation-iteration-count: infinite;
+  animation-timing-function: linear;
+  opacity: 0;
+}
+
+@keyframes notes {
+  0% {
+    font-size: 35px;
+    opacity: 0; 
+  }
+  50% {
+    opacity: 1; 
+  }
+  100% {
+    font-size: 60px;
+    margin-top: -150px;
+    opacity: 0; 
+  }
+}
+
+
+
+.dropbtn {
+  background: linear-gradient(93.51deg, #9b51e0 2.84%, #3081ed 99.18%);
+  color:white;
+  min-width: 12em;
+  max-height: 2em;
+  padding:0;
+  margin-top:1em;
+  transition:0.5s;
+}
+
+.dropdown {
+  position: relative;
+  display: inline-block;
+}
+
+.dropdown-content {
+  display: none;
+  position: absolute;
+  background-color: #f9f9f9;
+  min-width: 160px;
+  box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
+  z-index: 1;
+  cursor:grab;
+}
+
+.dropdown-content a {
+  color: black;
+  text-decoration: none;
+  display: block;
+  
+}
+
+.dropdown-content a:hover {background-color: #f1f1f1}
+
+.dropdown:hover .dropdown-content {
+  display: block;
+}
+
+.dropdown:hover .dropbtn {
+  background: white;
+  color:black;
+}
