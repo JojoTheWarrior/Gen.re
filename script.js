@@ -29,6 +29,7 @@ let output;
 
 
 
+
 // Listen external Midi IO
 const listenWebMidi = () => {
   WebMidi.enable(function (err) {
@@ -246,7 +247,49 @@ const loopNotes = () => {
   })
 }
 
+/*
 
+const file = "generate.py"
+async function runPythonFile(file, model) {
+  await pyodide.load();
+  
+  const reader = new FileReader();
+  reader.onload = async () => {
+    const fileContent = reader.result;
+    const pythonScript = new TextDecoder().decode(fileContent);
+    const result = pyodide.runPython(pythonScript);
+    console.log(result);
+  };
+
+  reader.readAsArrayBuffer(file);
+}
+
+function generateRock(model="models/rockmodel.pt"){
+  runPythonFile(file, model);
+}
+function generateClassical(){
+  function generateRock(model="models/classicalmodel.pt"){
+    runPythonFile(file, model);
+  }
+}
+function generatePop(){
+  function generateRock(model="models/popmodel.pt"){
+    runPythonFile(file, model);
+  }
+}
+function generateMetal(){
+  function generateRock(model="models/metalmodel.pt"){
+    runPythonFile(file, model);
+  }
+}
+function generateJazz(){
+  function generateRock(model="models/jazzmodel.pt"){
+    runPythonFile(file, model);
+  }
+}
+
+
+*/
 
 
 const close = () => {}

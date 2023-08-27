@@ -12,14 +12,19 @@ body {
 }
 
 .title {
-  text-shadow: 0.5rem black;
+  color: rgb(234, 212, 242);
+  position: absolute;
+  font-weight: 1000;
+  font-size: 5rem;
+  transform: translateX(700px) translateY(-300px) skewX(-25deg) skewY(5deg);
 }
 
-.title, .description {
+
+.description {
+  padding: 1em;
+  background-color: rgb(222, 193, 234);
   color: white;
   text-align: center;
-  font-size: 1.6rem;
-
 }
 
 .keyboard {
@@ -31,6 +36,14 @@ body {
   overflow-x: show;
   transition:.5s;
   transform: skewX(-25deg) skewY(5deg);
+}
+
+#save{
+  min-width: 8em;
+  max-height: 2em;
+  padding:0;
+  margin:0;
+  margin-left: 1em;
 }
 
 #myPianoRollVisualizer {
@@ -52,7 +65,7 @@ body {
 .translate-animation {
   animation: translateDown 6s linear; /* Adjust the duration as needed */
 }
-z
+
 
 .keyboard:hover{
   
@@ -86,17 +99,25 @@ z
   margin-top: 2px;
   transition:.2s;
   outline: none;
-  background-color: orange;
+  background-color:  rgb(222, 193, 234);
   transform:translatex(7%)skewx(2deg);
   box-shadow: 0 2px 0 0 black;
 }
 
 .loops {
-  background-color: antiquewhite;
-  border: 1px solid black;
+  background-color:  rgb(246, 240, 248);
   flex-direction: column;
   padding: 1em;
-
+  border-bottom: 4px solid black;
+}
+.loops__actions{
+  display: flexbox;
+  text-align: center;
+  align-items: centre;
+  justify-items: center;
+}
+#player::part(control-panel){
+  background: transparent;
 }
 
 #tape{
@@ -215,4 +236,49 @@ button:active {
     margin-top: -150px;
     opacity: 0; 
   }
+}
+
+
+
+.dropbtn {
+  background: linear-gradient(93.51deg, #9b51e0 2.84%, #3081ed 99.18%);
+  color:white;
+  min-width: 12em;
+  max-height: 2em;
+  padding:0;
+  margin-top:1em;
+  transition:0.5s;
+}
+
+.dropdown {
+  position: relative;
+  display: inline-block;
+}
+
+.dropdown-content {
+  display: none;
+  position: absolute;
+  background-color: #f9f9f9;
+  min-width: 160px;
+  box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
+  z-index: 1;
+  cursor:grab;
+}
+
+.dropdown-content a {
+  color: black;
+  text-decoration: none;
+  display: block;
+  
+}
+
+.dropdown-content a:hover {background-color: #f1f1f1}
+
+.dropdown:hover .dropdown-content {
+  display: block;
+}
+
+.dropdown:hover .dropbtn {
+  background: white;
+  color:black;
 }
