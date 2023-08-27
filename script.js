@@ -1,226 +1,260 @@
-  const { useState } = React;
-  const pianoPageLink = () => {
-    window.location.href = "./piano.html" 
-  };
-  const homePageLink = () => {
-    window.location.href = "./index.html"
+const DISPLAY = document.querySelector('#display');
+const INFO = document.querySelector('#info');
+const PLAYED = document.querySelector('#played');
+const KEYBOARD = document.querySelector('#keyboard');
 
-  };
+const LOAD = document.querySelector('#load');
+const SAVE = document.querySelector('#save');
+const LOAD_LABEL = document.querySelector("#loadLabel");
 
-  const Sidebar = () => {
-   const [isShrinkView, setIsShrinkView] = React.useState(true);
-   const [isDarkMode, setIsDarkMode] = React.useState(true);
- 
-   const handleSidebarView = () => {
-     setIsShrinkView(!isShrinkView);
-     if (document.getElementById("mySidebar").style.width == "198px"){
-        document.getElementById("mySidebar").style.width = "50px"; 
+const DEFAULT_FILE_NAME = 'my-midi';
+const CLASS = 'keyboard__note--pressed';
+const NOTES = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
+const KEYMAP = ['a', 'w', 's', 'e', 'd', 'f', 't', 'g', 'y', 'h', 'u', 'j', 'k', 'o', 'l', 'p'];
+const SYNTH = new Tone.Synth().toDestination();
+const NOW = Tone.now();
 
-        const body = document.querySelector('body');
-        body.style.marginLeft = '50px'
-    }else{
-        document.getElementById("mySidebar").style.width = "198px";
+myPianoRollVisualizer
+const MIDIVis = document.getElementById("#myPianoRollVisualizer");
+// Allow to store the current note in an index, for duration computation
+const CURRENT = {};
+const RECORDED = [];
+
+let isRecording = false;
+let isLoop = false;
+let recordingTime = 0;
+let theLoop;
+let octave = 4;
+let output;
+
+
+
+// Listen external Midi IO
+const listenWebMidi = () => {
+  WebMidi.enable(function (err) {
+    // Get the first real device
+    input = WebMidi.inputs.filter(input => !!input.manufacturer)[0];
+    output = WebMidi.outputs.filter(output => !!output.manufacturer)[0];
     
-        const body = document.querySelector('body');
-        body.style.marginLeft = '198px'
+    
+
+    if (input) {
+      const { version, manufacturer, name } = input;
+      INFO.innerText = [version, manufacturer, name].join(' - ');
+
+      // TODO: Create a map to retrieve length of playing time
+      input.addListener('noteon', 'all', (event) => {
+        const [something, note, volume] = event.data;
+        play(note, volume)
+      })
+      input.addListener('noteoff', 'all', (event) => {
+        const [something, note, volume] = event.data;
+        play(note, 0)
+      }) 
     }
-   };
- 
-  const handleThemeChange = () => {
-     setIsDarkMode(!isDarkMode);
-     document.body.classList.toggle("dark");
-   };
+  })
+} 
 
+// Initialize keyboard to play from PC
+const listenKeyboard = () => {
+  // TODO: Verify why 8 and somewhere else 4
+  const offset = 8;
   
+  document.addEventListener('keydown', event => {
+    const {key, repeat} = event;
+    const pos = KEYMAP.indexOf(key);
+    if (pos >= 0 && !repeat) {
+      const note = pos + offset + octave * 8;
+      play(note);
+    }
+  })
+
+  // TODO: Create a map to retrieve length of playing time
+  document.addEventListener('keyup', event => {
+    const key = event.key;
+    const pos = KEYMAP.indexOf(key);
+    
+    if (pos >= 0) {
+      const note = pos + offset + octave * 8;
+      play(note, 0);
+    }
+  });
+}
+
+const load = () => {
+  const file = LOAD.files[0];
+  if (!file) return;
+
+  LOAD_LABEL.textContent = file.name;
+
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    const midi = new Midi(e.target.result);
+    // TODO: Replace when allow multiple loops
+    const piano = midi.tracks
+      .filter(track => ['piano', 'guitar'].includes(track.instrument.family))
+      .filter(track => track.notes.length)[0];
+    // TODO: Replace after refactorying note object to match tone.js
+    const notes = piano.notes.map(n => {
+      return {
+        note: n.midi,
+        volume: n.velocity * 100,
+        time: n.ticks,
+        duration: n.duration
+      }
+    })
+
+    RECORDED.length = 0;
+    RECORDED.push(...notes);
+    console.log(JSON.stringify(notes))
+    PLAYED.innerText = RECORDED
+      .filter(note => !!note.volume)
+      .map(note => inputToNote(note.note))
+      .join(', ');
+  };
+  reader.readAsArrayBuffer(file);
+};
+
+// Listen input file for midi loading
+const listenLoad = () => {
+  LOAD.onchange = load;
+}
+
+const save = () => {
+  const midi = new Midi()
+  const track = midi.addTrack()
+  RECORDED.forEach(
+    note => track.addNote({
+      midi: note.note,
+      time: note.time / 1000,
+      duration: note.time || 0.2,
+      velocity: note.volume
+    })
+  )
+
+
+  const saveAs = prompt('Save midi file as:', DEFAULT_FILE_NAME);
+  const fileName = `${saveAs || DEFAULT_FILE_NAME}.mid`;
+  const data = midi.toArray();
+  const blob = new Blob([data], {type: 'audio/midi audio/x-midi'});
+
+  const elem = window.document.createElement('a');
+  elem.href = window.URL.createObjectURL(blob);
+  elem.download = fileName;        
+  document.body.appendChild(elem);
+  elem.click();        
+  document.body.removeChild(elem);
+}
+
+const listenSave = () => {
+  SAVE.onclick = save;
+}
+
+// Reset everything
+const reset = () => {
+  RECORDED.length = 0;
+  PLAYED.innerText = '';
+  DISPLAY.innerText = '';
+  isRecording = false;
+  isLoop = false;
+}
+
+// Map Inpput value to actual note
+const inputToNote = (input) => {
+  // TODO: Verify why 4
+  const offset = 4;
+  const inputOffset = input - offset;
+  const size = NOTES.length;
+  const octave = Math.floor(inputOffset/size);
+  const pos = inputOffset - size * octave;
+  const note = `${NOTES[pos]}${octave}`;
   
- 
-   return /*#__PURE__*/(
-    React.createElement("div", { className: `sidebar-container${isShrinkView ? " shrink" : ""}` }, /*#__PURE__*/
-    React.createElement("button", {
-      className: "sidebar-viewButton",
-      type: "button",
-      "aria-label": isShrinkView ? "Expand Sidebar" : "Shrink Sidebar",
-      title: isShrinkView ? "Expand" : "Shrink",
-      onClick: handleSidebarView }, /*#__PURE__*/
+  return note;
+}
 
-    React.createElement("svg", {
-      xmlns: "http://www.w3.org/2000/svg",
-      width: "24",
-      height: "24",
-      viewBox: "0 0 24 24",
-      fill: "none",
-      stroke: "currentColor",
-      "stroke-width": "2",
-      "stroke-linecap": "round",
-      "stroke-linejoin": "round",
-      class: "feather feather-chevron-left" }, /*#__PURE__*/
+const play = (note, volume = 50, duration) => {
 
-    React.createElement("polyline", { points: "15 18 9 12 15 6" }))), /*#__PURE__*/
+  const key = document.querySelector(`#key${note}`);
+  const tone = inputToNote(note);
+  DISPLAY.innerText = note + ' - ' + tone;
+  console.log(PLAYED)
+  
+  const remove = () => {
+    key?.classList?.remove(CLASS);
+    SYNTH.triggerRelease(Tone.now() + '8n')
+    if (output) {
+      output.stopNote(tone);
+    }
+  }
+  
+  if (!!volume) {
+    SYNTH.triggerAttack(tone, Tone.now())
+    key?.classList?.add(CLASS);
+    
+    if (output) {
+      output.playNote(tone);
+    }
+    
+    if (duration) {
+      setTimeout(() => remove(), duration * 1000);
+    }
+  } else  {
+    remove();
+  }
+  
+  if(isRecording) {
+    const time = Math.floor(performance.now() - recordingTime);
+    RECORDED.push({note, volume, time, duration})
+    PLAYED.innerText = RECORDED
+      .filter(note => !!note.volume)
+      .map(note => inputToNote(note.note))
+      .join(', ');
+  }
+}
 
+// Start recording
+const record = (status) => {
+  isRecording = status;
+  recordingTime = performance.now();
+};
 
-    React.createElement("div", { className: "sidebar-wrapper" }, /*#__PURE__*/
-    React.createElement("div", { className: "sidebar-themeContainer" }, /*#__PURE__*/
-    React.createElement("label", {
-      labelFor: "theme-toggle",
-      className: `sidebar-themeLabel${isDarkMode ? " switched" : ""}` }, /*#__PURE__*/
+// Start loop
+const loop = () => {
+  isLoop = !isLoop;
+  isRecording = false;
+  if(RECORDED.length) {
+    const loopLength = RECORDED[RECORDED.length -1].time;
 
-    React.createElement("input", {
-      className: "sidebar-themeInput",
-      type: "checkbox",
-      id: "theme-toggle",
-      onChange: handleThemeChange }), /*#__PURE__*/
+    if (isLoop) {
+      loopNotes();
+      theLoop = setInterval(() => loopNotes(), loopLength);
+    } else {
+      clearInterval(theLoop)
+    }
+  }
+};
 
-    React.createElement("div", { className: "sidebar-themeType light" }, /*#__PURE__*/
-    React.createElement("svg", {
-      xmlns: "http://www.w3.org/2000/svg",
-      width: "24",
-      height: "24",
-      viewBox: "0 0 24 24",
-      fill: "none",
-      stroke: "currentColor",
-      "stroke-width": "2",
-      "stroke-linecap": "round",
-      "stroke-linejoin": "round",
-      className: "sidebar-listIcon" }, /*#__PURE__*/
-
-    React.createElement("circle", { cx: "12", cy: "12", r: "5" }), /*#__PURE__*/
-    React.createElement("path", { d: "M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42" })), /*#__PURE__*/
-
-    React.createElement("span", { className: "sidebar-themeInputText" }, "Light")), /*#__PURE__*/
-
-    React.createElement("div", { className: "sidebar-themeType dark" }, /*#__PURE__*/
-    React.createElement("svg", {
-      xmlns: "http://www.w3.org/2000/svg",
-      width: "24",
-      height: "24",
-      viewBox: "0 0 24 24",
-      fill: "none",
-      stroke: "currentColor",
-      "stroke-width": "2",
-      "stroke-linecap": "round",
-      "stroke-linejoin": "round",
-      className: "sidebar-listIcon" }, /*#__PURE__*/
-
-    React.createElement("path", { d: "M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" })), /*#__PURE__*/
-
-    React.createElement("span", { className: "sidebar-themeInputText" }, "Dark")))), /*#__PURE__*/
-
-
-
-    React.createElement("ul", { className: "sidebar-list", onClick:homePageLink}, /*#__PURE__*/
-    React.createElement("li", { className: "sidebar-listItem active" }, /*#__PURE__*/
-    React.createElement("a", null, /*#__PURE__*/
-    React.createElement("svg", {
-      xmlns: "http://www.w3.org/2000/svg",
-      fill: "none",
-      stroke: "currentColor",
-      viewBox: "0 0 24 24",
-      "stroke-width": "2",
-      "stroke-linecap": "round",
-      "stroke-linejoin": "round",
-      className: "sidebar-listIcon" }, /*#__PURE__*/
-
-    React.createElement("rect", { x: "3", y: "3", rx: "2", ry: "2", className: "sidebar-listIcon" }), /*#__PURE__*/
-    React.createElement("path", { d: "M3 9h18M9 21V9" })), /*#__PURE__*/ 
- 
-     React.createElement("span", { className: "sidebar-listItemText"}, "Home"))), 
- 
- 
-     React.createElement("li", { className: "sidebar-listItem", onClick:pianoPageLink }, 
-     React.createElement("a", null, 
-     React.createElement("svg", {
-       xmlns: "http://www.w3.org/2000/svg",
-       viewBox: "0 0 24 24",
-       fill: "none",
-       stroke: "currentColor",
-       "stroke-width": "2",
-       "stroke-linecap": "round",
-       "stroke-linejoin": "round",
-       className: "sidebar-listIcon" }, 
- 
-     React.createElement("polyline", { points: "22 12 16 12 14 15 10 15 8 12 2 12" }), 
-     React.createElement("path", { d: "M5.45 5.11L2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z" })), 
- 
-     React.createElement("span", { className: "sidebar-listItemText" }, "Piano"))), 
- 
-    /** 
-     React.createElement("li", { className: "sidebar-listItem" }, 
-     React.createElement("a", null, 
-     React.createElement("svg", {
-       xmlns: "http://www.w3.org/2000/svg",
-       viewBox: "0 0 24 24",
-       fill: "none",
-       stroke: "currentColor",
-       "stroke-width": "2",
-       "stroke-linecap": "round",
-       "stroke-linejoin": "round",
-       className: "sidebar-listIcon" }, 
- 
-     React.createElement("rect", { x: "3", y: "4", width: "18", height: "18", rx: "2", ry: "2" }), 
-     React.createElement("line", { x1: "16", y1: "2", x2: "16", y2: "6" }), 
-     React.createElement("line", { x1: "8", y1: "2", x2: "8", y2: "6" }), 
-     React.createElement("line", { x1: "3", y1: "10", x2: "21", y2: "10" })), 
- 
-     React.createElement("span", { className: "sidebar-listItemText" }, "Calendar"))), 
- */
-     /** 
- 
-     React.createElement("li", { className: "sidebar-listItem" }, 
-     React.createElement("a", null, 
-     React.createElement("svg", {
-       xmlns: "http://www.w3.org/2000/svg",
-       viewBox: "0 0 24 24",
-       fill: "none",
-       stroke: "currentColor",
-       "stroke-width": "2",
-       "stroke-linecap": "round",
-       "stroke-linejoin": "round",
-       className: "sidebar-listIcon" }, 
- 
-     React.createElement("polyline", { points: "22 12 18 12 15 21 9 3 6 12 2 12" })), 
- 
-     React.createElement("span", { className: "sidebar-listItemText" }, "Activity"))), */
- 
-      /** 
-     React.createElement("li", { className: "sidebar-listItem" }, 
-     React.createElement("a", null, 
-     React.createElement("svg", {
-       xmlns: "http://www.w3.org/2000/svg",
-       viewBox: "0 0 24 24",
-       fill: "none",
-       stroke: "currentColor",
-       "stroke-width": "2",
-       "stroke-linecap": "round",
-       "stroke-linejoin": "round",
-       className: "sidebar-listIcon" }, 
- 
-     React.createElement("circle", { cx: "12", cy: "12", r: "3" }), 
-     React.createElement("path", { d: "M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-2 2 2 2 0 01-2-2v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 01-2-2 2 2 0 012-2h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 010-2.83 2 2 0 012.83 0l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 012-2 2 2 0 012 2v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 0 2 2 0 010 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 012 2 2 2 0 01-2 2h-.09a1.65 1.65 0 00-1.51 1z" })), 
- 
-     React.createElement("span", { className: "sidebar-listItemText" }, "Settings")))*/
-     ), 
- 
- 
- 
-     React.createElement("div", { className: "sidebar-profileSection" }, 
-     React.createElement("img", {
-       src: "https://assets.codepen.io/3306515/i-know.jpg",
-       width: "40",
-       height: "40",
-       alt: "Monica Geller" }), 
- 
-     React.createElement("span", null, "Monica Geller"))
-     
-     )));
- 
- 
- 
- 
- };
- 
- ReactDOM.render( React.createElement(Sidebar, null), document.getElementById("mySidebar"));
+const loopNotes = () => {
+  RECORDED.forEach(note => {
+    setTimeout(() => {
+      // Prevent to keep playing also after stop
+      if (!isLoop) return;
+      
+      play(note.note, note.volume, note.duration)
+      // setTimeout(() => play(note.note, 0), 200)
+    }, note.time);
+  })
+}
 
 
 
 
- 
+const close = () => {}
+
+const add = () => {}
+
+// listenMidi();
+listenWebMidi();
+listenKeyboard();
+listenLoad();
+listenSave();
